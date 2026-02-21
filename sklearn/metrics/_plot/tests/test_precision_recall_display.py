@@ -354,6 +354,27 @@ def test_precision_recall_raise_no_prevalence(pyplot):
     with pytest.raises(ValueError, match=msg):
         display.plot(plot_chance_level=True)
 
+def test_precision_recall_correct_prevalence_pos_label_hash_ne_value():
+    # Checks whether the prevalence_pos_label is calculated correctly
+    # in scenarios where a namespace defines scalar values such that 
+    # hash(value) is not equal to value (e.g. pytorch tensors)
+
+    class FloatHashNEValue(float):
+        def __hash__(self, *args, **kwargs):
+            return id(self)
+        
+    # Hash equals value
+    y_true = [float(1)] * 30 + [float(0)] * 70 # Precision chance: 0.3
+    y_score = [0 for _ in range(len(y_true))]
+    display = PrecisionRecallDisplay.from_predictions(y_true, y_score, plot_chance_level=True)
+    assert display.prevalence_pos_label == 0.3
+
+    # Hash not equals value 
+    y_true = [FloatHashNEValue(1)] * 30 + [FloatHashNEValue(0)] * 70 # Precision chance: 0.3
+    y_score = [0 for _ in range(len(y_true))]
+    display = PrecisionRecallDisplay.from_predictions(y_true, y_score, plot_chance_level=True)
+    assert display.prevalence_pos_label == 0.3
+
 
 @pytest.mark.parametrize("despine", [True, False])
 @pytest.mark.parametrize("constructor_name", ["from_estimator", "from_predictions"])
